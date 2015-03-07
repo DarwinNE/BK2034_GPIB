@@ -28,6 +28,7 @@ void GpibError(char *msg);
 float *movArray(float *source, int size);
 float* getOctaveLimits(void);
 float* getThirdOctaveLimits(void);
+void configureMaxFreq2034(char *maxfreq);
 void drawBandsOn2034(int octn, float *limits, float *calcvalues);
 int getBandsFrom2034(FILE *outputf,float *limits,int npoints,float maxfreq, 
     float *calcvalues, int scv);
@@ -59,30 +60,48 @@ int main(int argc, char**argv)
         outputf=fopen(argv[1],"w");
     }
     
+    float *limits=getThirdOctaveLimits();
+    int sc=100;
+    float calcvaluesLO[sc];
+    float calcvaluesHI[sc];
+    int npoints=801;
+    
     identify2034();
+    
+    /* The first measurement is done up to 800 Hz, to get information for
+       the low frequency range of the spectrum. */
+    configureMaxFreq2034("800");
     startMeasurement2034();
     waitUntilFinished2034();
     
-    float maxfreq=readMaxFrequency2034();
+	int nbands1=getBandsFrom2034(NULL, limits, npoints, 
+		readMaxFrequency2034(), 
+		calcvaluesLO,sc);
+	
+	/* The second measurement is done up to 25.5kHz, to get information for
+       the high frequency range of the spectrum. */
+    configureMaxFreq2034("25.5k");
+    startMeasurement2034();
+    waitUntilFinished2034();
     
-    int npoints=801;
-    float data[801];
-    
-    float *limits=getThirdOctaveLimits();
-    int sc=100;
-    float calcvalues[sc];
-    
-    int i;
-    float freq;
     if(outputf!=NULL) {
-        fprintf(outputf, "# FFT spectrum on a %f frequency range\n",maxfreq);
+        fprintf(outputf, "# FFT spectrum\n");
     } 
     int nbands;
     
-    nbands=getBandsFrom2034(outputf, limits, npoints, maxfreq, calcvalues,sc);
+	int nbands2=getBandsFrom2034(outputf, limits, npoints,
+		readMaxFrequency2034(), 
+		calcvaluesHI,sc);
+
+	int i;
+	float freq=limits[0];
+    while(freq<800.0f) {
+    	calcvaluesHI[i]=calcvaluesLO[i];
+    	freq=limits[++i];
+    }
     
-    if(nbands>0) 
-        drawBandsOn2034(nbands, limits, calcvalues);
+    if(nbands2>0) 
+        drawBandsOn2034(nbands2, limits, calcvaluesHI);
 
     if(outputf!=NULL)
         fclose(outputf);
@@ -333,8 +352,6 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
     ibwrt(Device, command, strlen(command)); 
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MM 0\n");
     ibwrt(Device, command, strlen(command)); 
-    sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION FS 6.4k\n");
-    ibwrt(Device, command, strlen(command)); 
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION ZB 1\n");
     ibwrt(Device, command, strlen(command));  
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AT 1\n");
@@ -358,7 +375,16 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
     ibwrt(Device, command, strlen(command)); 
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION DS 0\n");
     ibwrt(Device, command, strlen(command)); 
+}
 
+/** Configure the maximum frequency span to be used for measurements
+	on the 2034. 
+*/
+void configureMaxFreq2034(char *maxfreq)
+{
+    char command[1001];
+	sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION FS %s\n", maxfreq);
+    ibwrt(Device, command, strlen(command)); 
 }
 
 /** Start a measurement campaign on the 2034.
