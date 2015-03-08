@@ -30,6 +30,7 @@ float* getOctaveLimits(void);
 float* getThirdOctaveLimits(void);
 void configureMaxFreq2034(char *maxfreq);
 void drawBandsOn2034(int octn, float *limits, float *calcvalues);
+void printBandsOnScreen(int octn, float *limits, float *calcvalues);
 int getBandsFrom2034(FILE *outputf,float *limits,int npoints,float maxfreq, 
     float *calcvalues, int scv);
 void identify2034(void);
@@ -78,9 +79,9 @@ int main(int argc, char**argv)
 		readMaxFrequency2034(), 
 		calcvaluesLO,sc);
 	
-	/* The second measurement is done up to 25.5kHz, to get information for
+	/* The second measurement is done up to 25.6kHz, to get information for
        the high frequency range of the spectrum. */
-    configureMaxFreq2034("25.5k");
+    configureMaxFreq2034("25.6k");
     startMeasurement2034();
     waitUntilFinished2034();
     
@@ -93,15 +94,17 @@ int main(int argc, char**argv)
 		readMaxFrequency2034(), 
 		calcvaluesHI,sc);
 
-	int i;
+	int i=0;
 	float freq=limits[0];
-    while(freq<800.0f) {
+    while(freq<700.0f) {
     	calcvaluesHI[i]=calcvaluesLO[i];
     	freq=limits[++i];
     }
     
-    if(nbands2>0) 
+    if(nbands2>0) {
         drawBandsOn2034(nbands2, limits, calcvaluesHI);
+        printBandsOnScreen(nbands2, limits, calcvaluesHI);
+    }
 
     if(outputf!=NULL)
         fclose(outputf);
@@ -152,7 +155,7 @@ float* getThirdOctaveLimits(void)
 {
     float limits[]= {17.8,22.4,28.2,35.5,44.7,56.2,70.8,89.1,112,141,
         178,224,282,355,447,562,708,891,1122,1413,1778,2239,2818,3548,4467,
-        5623,7079,8913,11220,14130,17780};
+        5623,7079,8913,11220,14130,17780,22390,28210};
     return movArray(limits, sizeof(limits)/sizeof(float));
 }
 
@@ -205,6 +208,52 @@ void drawBandsOn2034(int octn, /* Number of bands */
                 (int)(octwidth*(i+0.1f)),20,(int)round(centraloct));
         }
         ibwrt(Device, command, strlen(command));
+    }
+}
+
+/** Shows on the PC screen way the band frequency analysis.
+*/
+void printBandsOnScreen(int octn, /* Number of bands */
+    float *limits,               /* Limits in frequency of bands */
+    float *calcvalues)           /* Power in dB/U integrated in bands */
+{
+    int i;
+    int val;
+    int countthirdoct=0;
+    float octaveinflimit;
+    float octavesuplimit;
+    float centraloct;
+    float max=-100.0f;
+    
+    printf("\n Final results of 1/3 octave analysis.\n");
+    
+    for(i =0; i<octn; ++i) {
+        octaveinflimit=limits[i];
+        octavesuplimit=limits[i+1];
+        centraloct=sqrt(octavesuplimit*octaveinflimit);
+        printf("Octave %f Hz - %f Hz around %f Hz: %f dB/YREF*Hz\n", 
+                octaveinflimit, octavesuplimit,centraloct, calcvalues[i]);
+        if(calcvalues[i]>max)
+        	max=calcvalues[i];
+        
+    }
+    printf("\n1/3 octave analysis, plot\n");
+    int ncol=70;
+    int k;
+    int lenline;
+    
+    for(i =0; i<octn; ++i) {
+        octaveinflimit=limits[i];
+        octavesuplimit=limits[i+1];
+        centraloct=sqrt(octavesuplimit*octaveinflimit);
+        printf("%6f: ", centraloct);
+        
+        lenline=(calcvalues[i]-max+40)/40*ncol;
+        
+        for(k=0; k<lenline;++k) 
+        	printf("*");
+        	
+        printf("\n");
     }
 }
 
@@ -313,7 +362,6 @@ void identify2034(void)
     Buffer[ibcntl] = '\0';         /* Null terminate the ASCII string         */
 
     printf("Identification received: %s", Buffer);
-    
 }
     
 
@@ -341,7 +389,11 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
     }
     /* Set the line terminator for the device */
     strncpy(command, "DEFINE_TERMINATOR \n", sizeof(command));
+    ibwrt(Device, command, strlen(command));
+    /* Reset the device */
+    strncpy(command, "SYSTEM_RESET 2\n", sizeof(command));
     ibwrt(Device, command, strlen(command));  
+    
     
     /* Show upper graph and measurement settings */
     sprintf(command, "DISPLAY_FORMAT UM\n");
@@ -394,8 +446,10 @@ void startMeasurement2034(void)
     char command[1001];
     sprintf(command, "KEY_PUSH G 0\n"); /* RECORD Cont */
     ibwrt(Device, command, strlen(command));
-    //sprintf(command, "KEY_PUSH A 0\n");   /* AVERAGING Start */
-    //ibwrt(Device, command, strlen(command));
+    sprintf(command, "KEY_PUSH C 0\n");   /* AVERAGING Stop */
+    ibwrt(Device, command, strlen(command));
+    sprintf(command, "KEY_PUSH A 0\n");   /* AVERAGING Start */
+    ibwrt(Device, command, strlen(command));
     printf("Please start 50 measurements for averaging.\n");
 }
 
