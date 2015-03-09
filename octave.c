@@ -47,7 +47,7 @@
 "   -s     Change the secondary address of the BK 2034.\n"\
 "\n"\
 "   -a     Choose the number of averages to be done on each acquisition.\n"\
-"          The default value is 50.\n"\
+"          The default value is 20.\n"\
 "          \n"\
 "   -l     Perform only the low frequency acquisition (the higher band \n"\
 "          therefore will be the 1/3 of octave comprised between\n"\
@@ -79,6 +79,7 @@ int getBandsFrom2034(float *limits,int npoints,float maxfreq,
     float *calcvalues, int scv);
 void identify2034(void);
 void init2034(int boardIndex, int primaryAddress, int secondaryAddress);
+void configureAcquisitionAndGraph2034(int navg);
 void startMeasurement2034(void);
 float readMaxFrequency2034(void);
 void waitUntilFinished2034(int wnavg);
@@ -199,7 +200,8 @@ int main(int argc, char**argv)
     
 	init2034(0, primaryAddress, secondaryAddress);
     identify2034();
-    
+    configureAcquisitionAndGraph2034(wnavg);
+
     int nbands;
     int nbands1=0;
     int nbands2=0;
@@ -575,6 +577,15 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
     ibwrt(Device, command, strlen(command));  
     
     
+}
+
+/** Configure the acquisition of the BK 2034 to acquire the 
+	wanted spectrum and number of averages.
+*/
+void configureAcquisitionAndGraph2034(int navg)
+{
+    char command[1001];
+
     /* Show upper graph and measurement settings */
     sprintf(command, "DISPLAY_FORMAT UM\n");
     ibwrt(Device, command, strlen(command)); 
@@ -588,7 +599,7 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
     ibwrt(Device, command, strlen(command));  
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AT 1\n");
     ibwrt(Device, command, strlen(command)); 
-    sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AN 50\n");
+    sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AN %d\n",navg);
     ibwrt(Device, command, strlen(command)); 
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AA 0\n");
     ibwrt(Device, command, strlen(command)); 
@@ -607,6 +618,7 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
     ibwrt(Device, command, strlen(command)); 
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION DS 0\n");
     ibwrt(Device, command, strlen(command)); 
+
 }
 
 /** Configure the maximum frequency span to be used for measurements
