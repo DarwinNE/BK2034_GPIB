@@ -65,6 +65,8 @@
 "   -o     Write on a file the results.\n"\
 "\n"\
 "   -n     Do not draw the graph on the BK2034 at the end of acquisitions.\n"\
+"\n"\
+"   -v     Specify vertical range in dB for the graphs (between 5 and 160).\n"\
 "\n\n"\
  
 typedef enum tag_style {CH_A, CH_B, H1, H2} t_style;
@@ -79,8 +81,9 @@ float *movArray(float *source, int size);
 float* getOctaveLimits(void);
 float* getThirdOctaveLimits(void);
 void configureMaxFreq2034(char *maxfreq);
-void drawBandsOn2034(int octn, float *limits, float *calcvalues);
-void printBandsOnScreen(int octn, float *limits, float *calcvalues);
+void drawBandsOn2034(int octn, float *limits, float *calcvalues, float vrange);
+void printBandsOnScreen(int octn, float *limits, float *calcvalues, 
+    float vrange);
 void writeBandsOnFile(char* filename, int octn, float *limits, float *cv);
 int getBandsFrom2034(float *limits,int npoints,float maxfreq, 
     float *calcvalues, int scv);
@@ -111,16 +114,11 @@ int main(int argc, char**argv)
     bool secondPass=true;
     char *fileName=NULL;
     bool drawOn2034=true;
+    float vrange=40.0f;
     t_style acquisition_c=CH_A;
-    
-    
     int i;
     
     
-    /*float testl[]={5,0,-5,-15,-20,-35,6, 10,-7};
-    printBandsOnScreen(9, limits, testl);
-    exit(0);
-    */
     
     printf("\nThird-octave analysis with B&K 2034 via GPIB\n\n");
     printf("Davide Bucci, 2015\n\n");
@@ -128,83 +126,93 @@ int main(int argc, char**argv)
     
     /* If necessary, process all command line functions */
     if(argc>1) {
-    	for(i=1; i<argc;++i) {
-    		if(strcmp(argv[i], "-h")==0) { /* -h show a help and exit */
-    			printf(HELP_STR);
-    			return 0;
-			} else if(strcmp(argv[i], "-a")==0) { /* -a number of averages */
-        		if(argc>i+1) {
-        			int wnavg_p;
-        			sscanf(argv[++i], "%d", &wnavg_p);
-        			if (wnavg_p<1 || wnavg_p>32767) {
-        				fprintf(stderr, "Invalid number of averages (%d).\n",
-        					wnavg_p);
-        			} else {
-        				wnavg=wnavg_p;
-        			}
-        		} else {
-        			fprintf(stderr, "-a requires the number of averages.\n");
-				}
-        	} else if(strcmp(argv[i], "-b")==0) { /* -b board index */
-        		if(argc>i+1) {
-        			int wbi;
-        			sscanf(argv[++i], "%d", &wbi);
-        			if (wbi<0 || wbi>31) {
-        				fprintf(stderr, "Invalid board index (%d).\n",
-        					wbi);
-        			} else {
-        				BoardIndex=wbi;
-        			}
-        		} else {
-        			fprintf(stderr, "-b requires the board index.\n");
-				}
-        	} else if(strcmp(argv[i], "-p")==0) { /* -p primaryAddress */
-        		if(argc>i+1) {
-        			int wpa;
-        			sscanf(argv[++i], "%d", &wpa);
-        			if (wpa<0 || wpa>31) {
-        				fprintf(stderr, "Invalid address (%d).\n",
-        					wpa);
-        			} else {
-        				primaryAddress=wpa;
-        			}
-        		} else {
-        			fprintf(stderr, "-p requires the address.\n");
-				}
-        	} else if(strcmp(argv[i], "-s")==0) { /* -p secondaryAddress */
-        		if(argc>i+1) {
-        			int wsa;
-        			sscanf(argv[++i], "%d", &wsa);
-        			if (wsa<0 || wsa>31) {
-        				fprintf(stderr, "Invalid address (%d).\n",
-        					wsa);
-        			} else {
-        				secondaryAddress=wsa;
-        			}
-        		} else {
-        			fprintf(stderr, "-s requires the address.\n");
-				}
-			} else if(strcmp(argv[i], "-l")==0) { /* -l low (first) pass  */
-				secondPass=false;
-			} else if(strcmp(argv[i], "-f")==0) { /* -l high (second) pass  */
-				firstPass=false;
-			} else if(strcmp(argv[i], "-n")==0) { /* -n do not draw on 2034  */
-				drawOn2034=false;
-			} else if(strcmp(argv[i], "-h1")==0) { /* -h1 H1 transfer fct.  */
-				acquisition_c=H1;
-			} else if(strcmp(argv[i], "-h2")==0) { /* -h2 H2 transfer fct.   */
-				acquisition_c=H2;
-			} else if(strcmp(argv[i], "-cb")==0) { /* -cb channel B.  */
-				acquisition_c=CH_B;
-			} else if(strcmp(argv[i], "-o")==0) { /* -o write on a file */
-        		if(argc>i+1) {
-        			fileName=argv[++i];
-        		} else {
-        			fprintf(stderr, "-o requires the file name.\n");
-				}
-			} else {
-				fprintf(stderr, "Unrecognized option: %3s\n", argv[i]);
-			}
+        for(i=1; i<argc;++i) {
+            if(strcmp(argv[i], "-h")==0) { /* -h show a help and exit */
+                printf(HELP_STR);
+                return 0;
+            } else if(strcmp(argv[i], "-a")==0) { /* -a number of averages */
+                if(argc>i+1) {
+                    int wnavg_p;
+                    sscanf(argv[++i], "%d", &wnavg_p);
+                    if (wnavg_p<1 || wnavg_p>32767) {
+                        fprintf(stderr, "Invalid number of averages (%d).\n",
+                            wnavg_p);
+                    } else {
+                        wnavg=wnavg_p;
+                    }
+                } else {
+                    fprintf(stderr, "-a requires the number of averages.\n");
+                }
+            } else if(strcmp(argv[i], "-b")==0) { /* -b board index */
+                if(argc>i+1) {
+                    int wbi;
+                    sscanf(argv[++i], "%d", &wbi);
+                    if (wbi<0 || wbi>31) {
+                        fprintf(stderr, "Invalid board index (%d).\n",
+                            wbi);
+                    } else {
+                        BoardIndex=wbi;
+                    }
+                } else {
+                    fprintf(stderr, "-b requires the board index.\n");
+                }
+            } else if(strcmp(argv[i], "-p")==0) { /* -p primaryAddress */
+                if(argc>i+1) {
+                    int wpa;
+                    sscanf(argv[++i], "%d", &wpa);
+                    if (wpa<0 || wpa>31) {
+                        fprintf(stderr, "Invalid address (%d).\n",
+                            wpa);
+                    } else {
+                        primaryAddress=wpa;
+                    }
+                } else {
+                    fprintf(stderr, "-p requires the address.\n");
+                }
+            } else if(strcmp(argv[i], "-s")==0) { /* -p secondaryAddress */
+                if(argc>i+1) {
+                    int wsa;
+                    sscanf(argv[++i], "%d", &wsa);
+                    if (wsa<0 || wsa>31) {
+                        fprintf(stderr, "Invalid address (%d).\n",
+                            wsa);
+                    } else {
+                        secondaryAddress=wsa;
+                    }
+                } else {
+                    fprintf(stderr, "-s requires the address.\n");
+                }
+            } else if(strcmp(argv[i], "-v")==0) { /* -p primaryAddress */
+                if(argc>i+1) {
+                    sscanf(argv[++i], "%f", &vrange);
+                    if (vrange<4 || vrange>161) {
+                        fprintf(stderr, "Invalid vertical range.\n");
+                        vrange=40;
+                    }
+                } else {
+                    fprintf(stderr, "-p requires the address.\n");
+                }
+            } else if(strcmp(argv[i], "-l")==0) { /* -l low (first) pass  */
+                secondPass=false;
+            } else if(strcmp(argv[i], "-f")==0) { /* -l high (second) pass  */
+                firstPass=false;
+            } else if(strcmp(argv[i], "-n")==0) { /* -n do not draw on 2034  */
+                drawOn2034=false;
+            } else if(strcmp(argv[i], "-h1")==0) { /* -h1 H1 transfer fct.  */
+                acquisition_c=H1;
+            } else if(strcmp(argv[i], "-h2")==0) { /* -h2 H2 transfer fct.   */
+                acquisition_c=H2;
+            } else if(strcmp(argv[i], "-cb")==0) { /* -cb channel B.  */
+                acquisition_c=CH_B;
+            } else if(strcmp(argv[i], "-o")==0) { /* -o write on a file */
+                if(argc>i+1) {
+                    fileName=argv[++i];
+                } else {
+                    fprintf(stderr, "-o requires the file name.\n");
+                }
+            } else {
+                fprintf(stderr, "Unrecognized option: %3s\n", argv[i]);
+            }
         }
     }
     
@@ -213,9 +221,14 @@ int main(int argc, char**argv)
         secondaryAddress);
     printf("Number of averages: %d\n", wnavg);
     
-	init2034(0, primaryAddress, secondaryAddress);
+    init2034(0, primaryAddress, secondaryAddress);
     identify2034();
     configureAcquisitionAndGraph2034(wnavg, acquisition_c);
+
+    /*float testl[]={5,0,-5,-15,-20,-35,6, 10,-7};
+    printBandsOnScreen(9, limits, testl, 50);
+    drawBandsOn2034(9, limits, testl, 50);
+    exit(0);*/
 
     int nbands;
     int nbands1=0;
@@ -223,54 +236,54 @@ int main(int argc, char**argv)
     float *calcvalues;
     
     if(firstPass) {
-    	printf("First read, low frequency range.\n");
-    	/* The first measurement is done up to 800 Hz, to get information for
-       		the low frequency range of the spectrum. */
-    	configureMaxFreq2034("800");
-    	startMeasurement2034();
-    	waitUntilFinished2034(wnavg);
+        printf("First read, low frequency range.\n");
+        /* The first measurement is done up to 800 Hz, to get information for
+            the low frequency range of the spectrum. */
+        configureMaxFreq2034("800");
+        startMeasurement2034();
+        waitUntilFinished2034(wnavg);
     
-		nbands1=getBandsFrom2034(limits, npoints, 
-			readMaxFrequency2034(), 
-			calcvaluesLO,sc);
-	}
-	
-	if(secondPass) {
-		printf("Second read, low frequency range.\n");
+        nbands1=getBandsFrom2034(limits, npoints, 
+            readMaxFrequency2034(), 
+            calcvaluesLO,sc);
+    }
+    
+    if(secondPass) {
+        printf("Second read, low frequency range.\n");
 
-		/* The second measurement is done up to 25.6kHz, to get information for
-       		the high frequency range of the spectrum. */
-    	configureMaxFreq2034("25.6k");
-    	startMeasurement2034();
-    	waitUntilFinished2034(wnavg);
+        /* The second measurement is done up to 25.6kHz, to get information for
+            the high frequency range of the spectrum. */
+        configureMaxFreq2034("25.6k");
+        startMeasurement2034();
+        waitUntilFinished2034(wnavg);
     
     
-		nbands2=getBandsFrom2034(limits, npoints,
-			readMaxFrequency2034(), 
-			calcvaluesHI,sc);
-	}
-	
-	if(secondPass) {
-		float freq=limits[0];
-		i=0;
-    	while(freq<700.0f) {
-    		if(firstPass) 
-    			calcvaluesHI[i]=calcvaluesLO[i];
-    		else
-    			calcvaluesHI[i]=-100.0f;
-    		freq=limits[++i];
-    	}
-    	nbands=nbands2;
-    	calcvalues=calcvaluesHI;
+        nbands2=getBandsFrom2034(limits, npoints,
+            readMaxFrequency2034(), 
+            calcvaluesHI,sc);
+    }
+    
+    if(secondPass) {
+        float freq=limits[0];
+        i=0;
+        while(freq<700.0f) {
+            if(firstPass) 
+                calcvaluesHI[i]=calcvaluesLO[i];
+            else
+                calcvaluesHI[i]=-100.0f;
+            freq=limits[++i];
+        }
+        nbands=nbands2;
+        calcvalues=calcvaluesHI;
     } 
     
     if(drawOn2034)
-    	drawBandsOn2034(nbands, limits, calcvalues);
+        drawBandsOn2034(nbands, limits, calcvalues, vrange);
     
-    printBandsOnScreen(nbands, limits, calcvalues);
+    printBandsOnScreen(nbands, limits, calcvalues, vrange);
     
     if(fileName!=NULL) {
-    	writeBandsOnFile(fileName, nbands, limits, calcvalues);
+        writeBandsOnFile(fileName, nbands, limits, calcvalues);
     }
 
     free(limits);
@@ -327,7 +340,8 @@ float* getThirdOctaveLimits(void)
 */
 void drawBandsOn2034(int octn, /* Number of bands */
     float *limits,               /* Limits in frequency of bands */
-    float *calcvalues)           /* Power in dB/U integrated in bands */
+    float *calcvalues,           /* Power in dB/U integrated in bands */
+    float vrange)                /* Vertical range in dB */
 {
     char command[1001];
     int i;
@@ -338,7 +352,28 @@ void drawBandsOn2034(int octn, /* Number of bands */
     sprintf(command, "WRITE_TEXT 1,5,\"OCTAVE ANALYSIS, DAVIDE BUCCI 2015\"\n");
     ibwrt(Device, command, strlen(command));
     
-    sprintf(command, "WRITE_TEXT 2,5,\"20 dB/DIV, TOP: 20 dB\"\n");
+    
+
+    int screenwidth=401;
+    float octwidth=(float)screenwidth/(float)octn;
+    int baseline=200;
+    float mult=50.0f/(vrange/4.0f);
+    
+    int val;
+    int countthirdoct=0;
+    float octaveinflimit;
+    float octavesuplimit;
+    float centraloct;
+    
+    float max=-200;
+    /* Search for the maximum value */
+    for(i =0; i<octn; ++i)
+        if(calcvalues[i]>max)
+            max=calcvalues[i];
+    
+    sprintf(command, "WRITE_TEXT 2,5,\"V. range: %4.2f dB, TOP: %4.2f dB\"\n",
+        vrange, max);
+        
     ibwrt(Device, command, strlen(command));
     
     // 401 pts/line, bipolar display, show scales
@@ -347,19 +382,10 @@ void drawBandsOn2034(int octn, /* Number of bands */
     
     sprintf(command, "PLOT_FOREGROUND 0,0\n");
     ibwrt(Device, command, strlen(command));
-
-    int screenwidth=401;
-    float octwidth=(float)screenwidth/(float)octn;
-    int baseline=150;
-    float mult=50/20;
-    int val;
-    int countthirdoct=0;
-    float octaveinflimit;
-    float octavesuplimit;
-    float centraloct;
     
     for(i =0; i<octn; ++i) {
-        val=(int)(calcvalues[i]*mult)+baseline;
+        val=(int)((calcvalues[i]-max)*mult)+baseline;
+        
         sprintf(command, "PLOT_CONTINUE_FOREGROUND %d,%d,%d,%d\n", 
             (int)(octwidth*i),val,(int)(octwidth*(i+1)-1),val);
         ibwrt(Device, command, strlen(command));
@@ -368,8 +394,19 @@ void drawBandsOn2034(int octn, /* Number of bands */
         octavesuplimit=limits[i+1];
         centraloct=sqrt(octavesuplimit*octaveinflimit);
         if((++countthirdoct)%3==2) {
+            int corr=octwidth/2-6;
+            if(centraloct<100) {
+                corr+=2;
+            } else if(centraloct<1000) {
+                corr+=6;
+            } else if(centraloct<10000) {
+                corr+=9;
+            } else {
+                corr+=12;
+            }
             sprintf(command, "PLOT_CONTINUE_FOREGROUND %d,%d,\"%d\"\n", 
-                (int)(octwidth*(i+0.1f)),20,(int)round(centraloct));
+                (int)(octwidth*(i+0.1f)-corr),20,
+                (int)round(centraloct));
         }
         ibwrt(Device, command, strlen(command));
     }
@@ -379,8 +416,8 @@ void drawBandsOn2034(int octn, /* Number of bands */
 /** Writes the calculated bands on a file.
 */
 void writeBandsOnFile(
-	char *fileName,
-	int octn, /* Number of bands */
+    char *fileName,
+    int octn, /* Number of bands */
     float *limits,               /* Limits in frequency of bands */
     float *calcvalues)           /* Power in dB/U integrated in bands */
 {
@@ -391,11 +428,11 @@ void writeBandsOnFile(
     
     FILE *fout=fopen(fileName, "w");
     if(fout==NULL) {
-    	fprintf(stderr, "Could not open output file (%s)!\n", fileName);
-    	return;
+        fprintf(stderr, "Could not open output file (%s)!\n", fileName);
+        return;
     } 
     fprintf(fout, 
-    	"# 1/3 octave analysis. Center band in Hz, PSD in dB/YREF*Hz\n");
+        "# 1/3 octave analysis. Center band in Hz, PSD in dB/YREF*Hz\n");
     for(i =0; i<octn; ++i) {
         octaveinflimit=limits[i];
         octavesuplimit=limits[i+1];
@@ -403,15 +440,16 @@ void writeBandsOnFile(
         fprintf(fout, " %f  %f \n", centraloct, calcvalues[i]);
     }
     fclose(fout);
-	printf("File %s written.\n", fileName);
+    printf("File %s written.\n", fileName);
 }
-    	
+        
 
 /** Shows on the PC screen way the band frequency analysis.
 */
 void printBandsOnScreen(int octn, /* Number of bands */
     float *limits,               /* Limits in frequency of bands */
-    float *calcvalues)           /* Power in dB/U integrated in bands */
+    float *calcvalues,           /* Power in dB/U integrated in bands */
+    float vrange)                /* Vertical range in dB */
 {
     int i;
     int val;
@@ -430,7 +468,7 @@ void printBandsOnScreen(int octn, /* Number of bands */
         printf("Band %6.1f Hz - %6.1f Hz around %6.1f Hz: %5.2f dB/YREF*Hz\n", 
                 octaveinflimit, octavesuplimit,centraloct, calcvalues[i]);
         if(calcvalues[i]>max)
-        	max=calcvalues[i];
+            max=calcvalues[i];
         
     }
     printf("\n    1/3 octave analysis, plot\n\n");
@@ -439,27 +477,34 @@ void printBandsOnScreen(int octn, /* Number of bands */
     int lenline;
     
     printf("     %2.1f                                                                %2.1f\n",
-    	   max-40, max);
- 	printf("      +----------------------------------------------------------------------+\n");
+           max-vrange, max);
+    printf("      +----------------------------------------------------------------------+\n");
     for(i =0; i<octn; ++i) {
         octaveinflimit=limits[i];
         octavesuplimit=limits[i+1];
         centraloct=sqrt(octavesuplimit*octaveinflimit);
         printf("%-6.0f: ", centraloct);
         
-        lenline=(calcvalues[i]-max+40)/40*ncol;
+        lenline=(calcvalues[i]-max+vrange)/(vrange)*ncol;
         
         for(k=0; k<lenline;++k) 
-        	printf("*");
-        	
+            printf("*");
+            
+        for(; k<ncol;++k) {
+            if((k+1)%10==0) 
+                printf("|");
+            else
+                printf(" ");
+        }
+            
         printf("\n");
     }
-   	printf("      +----------------------------------------------------------------------+\n");
+    printf("      +----------------------------------------------------------------------+\n");
 
 }
 
 /** Read the data of all displayed points from the 2034. Returns the number 
-	of bands covered or a negative number if something bad happened.
+    of bands covered or a negative number if something bad happened.
     Data will be put in calcvalues, which should have been allocated before
     calling to this function.
 */
@@ -595,7 +640,7 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
 }
 
 /** Configure the acquisition of the BK 2034 to acquire the 
-	wanted spectrum and number of averages.
+    wanted spectrum and number of averages.
 */
 void configureAcquisitionAndGraph2034(int navg, t_style s)
 {
@@ -608,18 +653,18 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
     /* System settings for MEASUREMENT */
     /* Configure the acquisition channel, at first. */
     switch(s) {
-    	default:
-    	case CH_A:
-    		sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 0\n");
-    		break;
-    	case CH_B:
-    		sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 1\n");
-    		break;
-    	case H1:
-    	case H2:
-    		sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 2\n");
-    		break;
-	}
+        default:
+        case CH_A:
+            sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 0\n");
+            break;
+        case CH_B:
+            sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 1\n");
+            break;
+        case H1:
+        case H2:
+            sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 2\n");
+            break;
+    }
     ibwrt(Device, command, strlen(command)); 
     
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MM 0\n");
@@ -638,20 +683,20 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
     /* System settings for DISPLAY */
     
     switch(s) {
-    	default:
-    	case CH_A:
-    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 14\n");
-    		break;
-    	case CH_B:
-    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 15\n");
-    		break;
-    	case H1:
-    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 17\n");
-    		break;
-    	case H2:
-    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 19\n");
-    		break;
-	}
+        default:
+        case CH_A:
+            sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 14\n");
+            break;
+        case CH_B:
+            sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 15\n");
+            break;
+        case H1:
+            sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 17\n");
+            break;
+        case H2:
+            sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 19\n");
+            break;
+    }
     
     ibwrt(Device, command, strlen(command)); 
  
@@ -659,21 +704,21 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
     ibwrt(Device, command, strlen(command)); 
     
     switch(s) {
-    	default:
-    	case CH_A:
-    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION SU 2\n");
-    		ibwrt(Device, command, strlen(command));
-    		break;
-    	case CH_B:
-    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION SU 2\n");
-    		ibwrt(Device, command, strlen(command));
-    		break;
-    	case H1:
-    		break;
-    	case H2:
-    		break;
-	}
-	
+        default:
+        case CH_A:
+            sprintf(command, "EDIT_DISPLAY_SPECIFICATION SU 2\n");
+            ibwrt(Device, command, strlen(command));
+            break;
+        case CH_B:
+            sprintf(command, "EDIT_DISPLAY_SPECIFICATION SU 2\n");
+            ibwrt(Device, command, strlen(command));
+            break;
+        case H1:
+            break;
+        case H2:
+            break;
+    }
+    
     
      
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION ID 2\n");
@@ -684,12 +729,12 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
 }
 
 /** Configure the maximum frequency span to be used for measurements
-	on the 2034. 
+    on the 2034. 
 */
 void configureMaxFreq2034(char *maxfreq)
 {
     char command[1001];
-	sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION FS %s\n", maxfreq);
+    sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION FS %s\n", maxfreq);
     ibwrt(Device, command, strlen(command)); 
 }
 
@@ -740,6 +785,8 @@ void waitUntilFinished2034(int wnavg)
     float complete=0.0f;
     int i;
     
+    sprintf(command, "PROMPT 'PLEASE START MEASUREMENTS NOW'\n");
+    ibwrt(Device, command, strlen(command));
     printf("[                                                  ]\r");
     do {
         waitFor(1);
@@ -754,9 +801,11 @@ void waitUntilFinished2034(int wnavg)
 
         sscanf(Buffer, "%f", &averagingnum);
     
-    	complete=averagingnum/wnavg;
-    	printf("\r[");
-    	for(i=0; i<(int)(complete*wstar);++i) {
+        complete=averagingnum/wnavg;
+        printf("\r[");
+        for(i=0; i<(int)(complete*wstar);++i) {
+            sprintf(command, "PROMPT\n");
+            ibwrt(Device, command, strlen(command));
             printf("*");
             fflush(stdout);
         }
