@@ -46,21 +46,28 @@
 "\n"\
 "   -s     Change the secondary address of the BK 2034.\n"\
 "\n"\
+"   -cb    Acquire ch.B instead of ch.A.\n"\
+"\n"\
+"   -h1    Acquire H1 transfer function instead of the spectrum of ch.A.\n"\
+"\n"\
+"   -h2    Acquire H2 transfer function instead of the spectrum of ch.A.\n"\
+"\n"\
 "   -a     Choose the number of averages to be done on each acquisition.\n"\
 "          The default value is 20.\n"\
-"          \n"\
+"\n"\
 "   -l     Perform only the low frequency acquisition (the higher band \n"\
 "          therefore will be the 1/3 of octave comprised between\n"\
 "          562 Hz and 708 Hz.\n"\
-"          \n"\
+"\n"\
 "   -f     Perform only the high frequency acquisition (the lowest band\n"\
 "          will start from 447 Hz).\n"\
-"          \n"\
+"\n"\
 "   -o     Write on a file the results.\n"\
-"          \n"\
+"\n"\
 "   -n     Do not draw the graph on the BK2034 at the end of acquisitions.\n"\
-"          \n\n"\
+"\n\n"\
  
+typedef enum tag_style {CH_A, CH_B, H1, H2} t_style;
 
 int Device = 0;                   /* Device unit descriptor                  */
 int BoardIndex = 0;               /* Interface Index (GPIB0=0,GPIB1=1,etc.)  */
@@ -79,7 +86,7 @@ int getBandsFrom2034(float *limits,int npoints,float maxfreq,
     float *calcvalues, int scv);
 void identify2034(void);
 void init2034(int boardIndex, int primaryAddress, int secondaryAddress);
-void configureAcquisitionAndGraph2034(int navg);
+void configureAcquisitionAndGraph2034(int navg, t_style s);
 void startMeasurement2034(void);
 float readMaxFrequency2034(void);
 void waitUntilFinished2034(int wnavg);
@@ -104,6 +111,8 @@ int main(int argc, char**argv)
     bool secondPass=true;
     char *fileName=NULL;
     bool drawOn2034=true;
+    t_style acquisition_c=CH_A;
+    
     
     int i;
     
@@ -181,6 +190,12 @@ int main(int argc, char**argv)
 				firstPass=false;
 			} else if(strcmp(argv[i], "-n")==0) { /* -n do not draw on 2034  */
 				drawOn2034=false;
+			} else if(strcmp(argv[i], "-h1")==0) { /* -h1 H1 transfer fct.  */
+				acquisition_c=H1;
+			} else if(strcmp(argv[i], "-h2")==0) { /* -h2 H2 transfer fct.   */
+				acquisition_c=H2;
+			} else if(strcmp(argv[i], "-cb")==0) { /* -cb channel B.  */
+				acquisition_c=CH_B;
 			} else if(strcmp(argv[i], "-o")==0) { /* -o write on a file */
         		if(argc>i+1) {
         			fileName=argv[++i];
@@ -200,7 +215,7 @@ int main(int argc, char**argv)
     
 	init2034(0, primaryAddress, secondaryAddress);
     identify2034();
-    configureAcquisitionAndGraph2034(wnavg);
+    configureAcquisitionAndGraph2034(wnavg, acquisition_c);
 
     int nbands;
     int nbands1=0;
@@ -582,7 +597,7 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
 /** Configure the acquisition of the BK 2034 to acquire the 
 	wanted spectrum and number of averages.
 */
-void configureAcquisitionAndGraph2034(int navg)
+void configureAcquisitionAndGraph2034(int navg, t_style s)
 {
     char command[1001];
 
@@ -591,8 +606,22 @@ void configureAcquisitionAndGraph2034(int navg)
     ibwrt(Device, command, strlen(command)); 
     
     /* System settings for MEASUREMENT */
-    sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 0\n");
+    /* Configure the acquisition channel, at first. */
+    switch(s) {
+    	default:
+    	case CH_A:
+    		sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 0\n");
+    		break;
+    	case CH_B:
+    		sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 1\n");
+    		break;
+    	case H1:
+    	case H2:
+    		sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 2\n");
+    		break;
+	}
     ibwrt(Device, command, strlen(command)); 
+    
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MM 0\n");
     ibwrt(Device, command, strlen(command)); 
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION ZB 1\n");
@@ -607,13 +636,46 @@ void configureAcquisitionAndGraph2034(int navg)
     ibwrt(Device, command, strlen(command));
     
     /* System settings for DISPLAY */
-    sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 14\n");
+    
+    switch(s) {
+    	default:
+    	case CH_A:
+    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 14\n");
+    		break;
+    	case CH_B:
+    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 15\n");
+    		break;
+    	case H1:
+    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 17\n");
+    		break;
+    	case H2:
+    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 19\n");
+    		break;
+	}
+    
     ibwrt(Device, command, strlen(command)); 
  
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION YU 1\n");
     ibwrt(Device, command, strlen(command)); 
-    sprintf(command, "EDIT_DISPLAY_SPECIFICATION SU 2\n");
-    ibwrt(Device, command, strlen(command)); 
+    
+    switch(s) {
+    	default:
+    	case CH_A:
+    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION SU 2\n");
+    		ibwrt(Device, command, strlen(command));
+    		break;
+    	case CH_B:
+    		sprintf(command, "EDIT_DISPLAY_SPECIFICATION SU 2\n");
+    		ibwrt(Device, command, strlen(command));
+    		break;
+    	case H1:
+    		break;
+    	case H2:
+    		break;
+	}
+	
+    
+     
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION ID 2\n");
     ibwrt(Device, command, strlen(command)); 
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION DS 0\n");
