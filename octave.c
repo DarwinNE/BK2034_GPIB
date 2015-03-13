@@ -49,8 +49,12 @@
 "   -cb    Acquire ch.B instead of ch.A.\n"\
 "\n"\
 "   -h1    Acquire H1 transfer function instead of the spectrum of ch.A.\n"\
+"          In this case, the transfer function will be normalized to the\n"\
+"          Of each octave: a flat H1 transfer function will give a flat\n"\
+"          third of octave representation.\n"\
 "\n"\
 "   -h2    Acquire H2 transfer function instead of the spectrum of ch.A.\n"\
+"          See -h1 for the representation.\n"\
 "\n"\
 "   -a     Choose the number of averages to be done on each acquisition.\n"\
 "          The default value is 20.\n"\
@@ -86,7 +90,7 @@ void printBandsOnScreen(int octn, float *limits, float *calcvalues,
     float vrange);
 void writeBandsOnFile(char* filename, int octn, float *limits, float *cv);
 int getBandsFrom2034(float *limits,int npoints,float maxfreq, 
-    float *calcvalues, int scv);
+    float *calcvalues, int scv, t_style acq);
 void identify2034(void);
 void init2034(int boardIndex, int primaryAddress, int secondaryAddress);
 void configureAcquisitionAndGraph2034(int navg, t_style s);
@@ -245,7 +249,7 @@ int main(int argc, char**argv)
     
         nbands1=getBandsFrom2034(limits, npoints, 
             readMaxFrequency2034(), 
-            calcvaluesLO,sc);
+            calcvaluesLO,sc,acquisition_c);
     }
     
     if(secondPass) {
@@ -260,7 +264,7 @@ int main(int argc, char**argv)
     
         nbands2=getBandsFrom2034(limits, npoints,
             readMaxFrequency2034(), 
-            calcvaluesHI,sc);
+            calcvaluesHI,sc,acquisition_c);
     }
     
     if(secondPass) {
@@ -513,7 +517,8 @@ int getBandsFrom2034(
     int npoints,                        /* Total number of points to read */
     float maxfreq,                      /* Max frequency span */
     float *calcvalues,                  /* Pt. to the table to be completed */
-    int scv)                            /* Size of calcvalues array. */
+    int scv,                            /* Size of calcvalues array. */
+    t_style acq)						/* Acquisition style */
 {
     char command[1001];
     char  Buffer[1001];
@@ -555,6 +560,9 @@ int getBandsFrom2034(
             ++ptinoctave;
         } else if(freq>octavesuplimit) {
             /* We have got to the following interval */
+            if(acq==H1 || acq==H2) {
+            	accum/= octavesuplimit-octaveinflimit;
+            }
             accum=10*log10(accum);
             printf("Band %6.1f Hz - %6.1f Hz around %6.1f Hz: %5.2f dB/YREF*Hz\n", 
                 octaveinflimit, octavesuplimit,centraloct, accum);
