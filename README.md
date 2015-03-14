@@ -37,40 +37,18 @@ The following options are available:
 |  -h    | Show this help
 |--------|------------------------------------------------------------|
 |  -b    | Change the board interface index (GPIB0=0,GPIB1=1,etc.)
-|--------|------------------------------------------------------------|
 |  -p    | Change the primary address of the BK 2034.
-|--------|------------------------------------------------------------|
 |  -s    | Change the secondary address of the BK 2034.
-|--------|------------------------------------------------------------|
 |  -cb   | Acquire ch.B instead of ch.A.
-|--------|------------------------------------------------------------|
-|   -h1  | Acquire H1 transfer function instead of the spectrum of ch.A.
-|        | In this case, the transfer function will be normalized to the
-|        | Of each octave: a flat H1 transfer function will give a flat
-|        | third of octave representation.
-|--------|------------------------------------------------------------|
-|   -h2  | Acquire H2 transfer function instead of the spectrum of ch.A.
-|        | See -h1 for the representation.
-|--------|------------------------------------------------------------|
-|   -a   | Choose the number of averages to be done on each acquisition.
-|        | The default value is 20.
-|--------|------------------------------------------------------------|
-|  -l    | Perform only the low frequency acquisition (the higher band 
-|        | therefore will be the 1/3 of octave comprised between
-|        | 562 Hz and 708 Hz.
-|--------|------------------------------------------------------------|
-|  -f    | Perform only the high frequency acquisition (the lowest band
-|        | will start from 447 Hz).
-|--------|------------------------------------------------------------|
-|   -o   | Write on a file the results.
-|--------|------------------------------------------------------------|
-|   -lf  | Write on a file the data collected in the first pass.
-|--------|------------------------------------------------------------|
+|  -h1   | Acquire H1 transfer function instead of the spectrum of ch.A. In this case, the transfer function will be normalized to the width of each octave: a flat H1 transfer function will give a flat third of octave representation.
+|  -h2   | Acquire H2 transfer function instead of the spectrum of ch.A. See -h1 for the representation.
+|  -a    | Choose the number of averages to be done on each acquisition. The default value is 20.
+|  -l    | Perform only the low frequency acquisition (the higher band  therefore will be the 1/3 of octave comprised between 562 Hz and 708 Hz.
+|  -f    | Perform only the high frequency acquisition (the lowest band will start from 447 Hz).
+|  -o    | Write on a file the results.
+|  -lf   | Write on a file the data collected in the first pass.
 |  -ff   | Write on a file the data collected in the second pass.
-|--------|------------------------------------------------------------|
 |  -n    | Do not draw the graph on the BK2034 at the end of acquisitions.
-|--------|------------------------------------------------------------|
 |  -v    | Specify vertical range in dB for the graphs (between 5 and 160).
-|--------|------------------------------------------------------------|
 |  -c    | Use a calibration file. Measurement results will be normalized
 |        | to those read from the given file.
