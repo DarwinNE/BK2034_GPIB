@@ -34,8 +34,9 @@ It is also possible to choose a file where to write the results.
 
 The following options are available:
 
-|  -h    | Show this help
+| Option | Action
 |--------|------------------------------------------------------------|
+|  -h    | Show this help
 |  -b    | Change the board interface index (GPIB0=0,GPIB1=1,etc.)
 |  -p    | Change the primary address of the BK 2034.
 |  -s    | Change the secondary address of the BK 2034.
