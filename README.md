@@ -10,7 +10,7 @@ The utilities have been developed and tested with MacOSX 10.6.9 and 10.9.5 with 
 |octave.c      | Performs a read of the spectrum and calculates the 1/3 of octave representation. |
 
 
-== octave.c ==
+## octave.c
 
 Third-octave analysis with B&K 2034 via GPIB
 
@@ -51,5 +51,4 @@ The following options are available:
 |  -ff   | Write on a file the data collected in the second pass.
 |  -n    | Do not draw the graph on the BK2034 at the end of acquisitions.
 |  -v    | Specify vertical range in dB for the graphs (between 5 and 160).
-|  -c    | Use a calibration file. Measurement results will be normalized
-|        | to those read from the given file.
+|  -c    | Use a calibration file. Measurement results will be normalized to those read from the given file.
