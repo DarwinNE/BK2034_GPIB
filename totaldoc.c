@@ -219,12 +219,15 @@ int main(int argc, char**argv)
 		
 		char *filebuffer = (char*) malloc (sizeof(char)*nbytes);
   		if (filebuffer == NULL) {
-  			 
+  			fprintf(stderr, "Could not allocate enough memory to read the "
+  				"input file.\n");
+  			return 2;
   		}
 
   		int result = fread (filebuffer,1, nbytes,filep);
   		if (result != nbytes) {
-  		
+  			fprintf(stderr, "Could not read correctly the input file.\n");
+  			return 3;
   		}
 		
 		ibwrt(Device, filebuffer, nbytes);
