@@ -8,6 +8,7 @@ The utilities have been developed and tested with MacOSX 10.6.9 and 10.9.5 with 
 |File          | Description |
 |--------------|-------------|
 |octave.c      | Performs a read of the spectrum and calculates the 1/3 of octave representation. |
+|totaldoc.c    | Read or send back a "total documentation" of the 2034 (backup of configuration and measurements). |
 
 
 ## octave.c
@@ -52,3 +53,28 @@ The following options are available:
 |  -n    | Do not draw the graph on the BK2034 at the end of acquisitions.
 |  -v    | Specify vertical range in dB for the graphs (between 5 and 160).
 |  -c    | Use a calibration file. Measurement results will be normalized to those read from the given file.
+
+## totaldoc.c
+
+Total documentation of a B&K 2034 via GPIB
+
+Davide Bucci, 2015
+
+This software communicates with a Bruel&Kjaer 2034 double channel FFT
+spectrum analyzer and records or send back to the instrument its current
+state, which comprises the measurement settings, the data acquired as well
+as the visualization settings.
+
+
+The following options are available:
+
+| Option | Action
+|--------|------------------------------------------------------------|
+
+   -h     | Show this help
+   -b     | Change the board interface index (GPIB0=0,GPIB1=1,etc.)
+   -p     | Change the primary address of the BK 2034.
+   -s     | Change the secondary address of the BK 2034.
+   -r     | Record a total documentation of the BK 2034 on a given file (2034 -> file).
+   -t     | Send back a total documentation to the BK 2034 from a given file  (file -> 2034).
+

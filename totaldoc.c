@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define HELP_STR \
 "This software communicates with a Bruel&Kjaer 2034 double channel FFT\n"\
@@ -62,6 +63,16 @@ int main(int argc, char**argv)
     
     char *storagefile=NULL;
     int i;
+    int nbytes;
+    char buffer[1001];
+    char command[1001];
+    char display_spec[1001];
+    char measurement_spec[1001];
+
+    char *data=NULL;
+    FILE *filep=NULL;
+    bool read=true;
+    
     printf("\nTotal documentation of a B&K 2034 via GPIB\n\n");
     printf("Davide Bucci, 2015\n\n");
     
@@ -109,12 +120,14 @@ int main(int argc, char**argv)
                     fprintf(stderr, "-s requires the address.\n");
                 }
             } else if(strcmp(argv[i], "-r")==0) { /* -r BK2034 -> file */
+            	read=true;
                 if(argc>i+1) {
                     storagefile=argv[++i];
                 } else {
                     fprintf(stderr, "-r requires the file name.\n");
                 }
             } else if(strcmp(argv[i], "-t")==0) { /* -t file -> BK2034 */
+            	read=false;
                 if(argc>i+1) {
                     storagefile=argv[++i];
                 } else {
@@ -130,6 +143,70 @@ int main(int argc, char**argv)
 
     init2034(0, primaryAddress, secondaryAddress);
     identify2034();
+	
+	if(storagefile==NULL) {
+		fprintf(stderr, "You should use -r or -t options to specify an "
+			"action, as well as a filename.\n");
+	}
+	
+	if(read) {
+		/* Send a TOTAL DOCUMENTATION command. Apparently, that technique was 
+	   		used to save on a compact cassette the data read by the BK2034 for
+	   		a later use. */
+		sprintf(command, "TOTAL_DOCUMENTATION\n");
+    	ibwrt(Device, command, strlen(command));
+    
+    	/* Read the data back. At first a TD */
+		ibrd(Device, buffer, 3);
+		buffer[2]='\0';
+	
+		if(strcmp(buffer, "TD")!=0) {
+			fprintf(stderr, "TD has not been received from the instrument "
+					"(%s).\n",buffer);
+		}
+
+		/* Then the Display Specification data */
+		ibrd(Device, display_spec, 206);
+		/* The Measurement Specification data */
+		ibrd(Device, measurement_spec, 340);
+		/* The number of bytes */
+		ibrd(Device, buffer, 2);
+		buffer[2]='\0';
+	
+		nbytes=buffer[0]+buffer[1]*256;
+		printf("Reading %d bytes from the B&K 2034.\n", nbytes);
+		data=(char*)calloc(nbytes, 1);
+		ibrd(Device, data, nbytes);
+		
+		filep=fopen(storagefile, "w");
+		if(filep==NULL) {
+			fprintf(stderr, "Could not open output file.\n");
+			if(data!=NULL)
+				free(data);
+			return 1;
+		}
+		
+		fprintf(filep, "TD %s%s%s%s\n", display_spec, measurement_spec, 
+			buffer, data);
+		fclose(filep);
+	} else {
+		/*  Read all the contents of a file and send them to the BK2034.
+			The file does not need to contain a TOTAL DOCUMENTATION command,
+			even if this will be the most frequent case where the utility 
+			will be used.
+		*/
+		filep=fopen(storagefile, "r");
+		
+		if(filep==NULL) {
+			fprintf(stderr, "Could not open input file.\n");
+			return 1;
+		}
+		int ch;
+		while((ch = fgetc(filep)) != EOF) {
+			ibwrt(Device, (char*) &ch, 1);
+		}
+     	fclose(filep);
+	}
 	
 	closeCommIEEE();
        
