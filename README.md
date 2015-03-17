@@ -70,11 +70,10 @@ The following options are available:
 
 | Option | Action
 |--------|------------------------------------------------------------|
-
-   -h     | Show this help
-   -b     | Change the board interface index (GPIB0=0,GPIB1=1,etc.)
-   -p     | Change the primary address of the BK 2034.
-   -s     | Change the secondary address of the BK 2034.
-   -r     | Record a total documentation of the BK 2034 on a given file (2034 -> file).
-   -t     | Send back a total documentation to the BK 2034 from a given file  (file -> 2034).
+|  -h    | Show this help
+|  -b    | Change the board interface index (GPIB0=0,GPIB1=1,etc.)
+|  -p    | Change the primary address of the BK 2034.
+|  -s    | Change the secondary address of the BK 2034.
+|  -r    | Record a total documentation of the BK 2034 on a given file (2034 -> file).
+|  -t    | Send back a total documentation to the BK 2034 from a given file  (file -> 2034).
 
