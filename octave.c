@@ -109,8 +109,8 @@ void waitUntilFinished2034(int wnavg);
 void closeCommIEEE(void);
 
 
-/** Main routine. If a filename is provided as an argument, all the 
-    data are written there.
+/** Main routine. Parse and execute command options (see the HELP_STR string
+    which contains the help of the program.
 */
 int main(int argc, char**argv) 
 {
@@ -509,7 +509,7 @@ float *readBandsFromFile(
     FILE *fin=fopen(fileName, "r");
     if(fin==NULL) {
         fprintf(stderr, "Could not open input file (%s)!\n", fileName);
-        return;
+        return NULL;
     } 
     char c;
     do {
@@ -753,9 +753,7 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
     ibwrt(Device, command, strlen(command));
     /* Reset the device */
     strncpy(command, "SYSTEM_RESET 2\n", sizeof(command));
-    ibwrt(Device, command, strlen(command));  
-    
-    
+    ibwrt(Device, command, strlen(command));
 }
 
 /** Configure the acquisition of the BK 2034 to acquire the 
