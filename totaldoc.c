@@ -20,7 +20,7 @@
 
 #define HELP_STR \
 "This software communicates with a Bruel&Kjaer 2034 double channel FFT\n"\
-"spectrum analyzer and records or send back to the instrument its current\n"\
+"spectrum analyzer and records or sends back to the instrument its current\n"\
 "state, which comprises the measurement settings, the data acquired as well\n"\
 "as the visualization settings.\n"\
 "\n"\
@@ -147,6 +147,7 @@ int main(int argc, char**argv)
 	if(storagefile==NULL) {
 		fprintf(stderr, "You should use -r or -t options to specify an "
 			"action, as well as a filename.\n");
+		return 1;
 	}
 	
 	if(read) {
@@ -186,9 +187,18 @@ int main(int argc, char**argv)
 			return 1;
 		}
 		
-		fprintf(filep, "TD %s%s%s%s\n", display_spec, measurement_spec, 
-			buffer, data);
+		fprintf(filep, "TD ");
+		fwrite(display_spec, 206, 1, filep); 
+		fwrite(measurement_spec, 340, 1, filep);
+		fwrite(buffer, 2, 1, filep);
+		fwrite(data, nbytes, 1, filep);
+		fprintf(filep, "\n");
+			
+		ibrd(Device, buffer, 1);
+
 		fclose(filep);
+		free(data);
+		printf("File %s written\n",storagefile);
 	} else {
 		/*  Read all the contents of a file and send them to the BK2034.
 			The file does not need to contain a TOTAL DOCUMENTATION command,
@@ -201,10 +211,23 @@ int main(int argc, char**argv)
 			fprintf(stderr, "Could not open input file.\n");
 			return 1;
 		}
-		int ch;
-		while((ch = fgetc(filep)) != EOF) {
-			ibwrt(Device, (char*) &ch, 1);
-		}
+		printf("Open file %s for read.\n", storagefile);
+		int nbytes;
+		fseek(filep , 0 , SEEK_END);
+  		nbytes = ftell(filep);
+  		rewind(filep);
+		
+		char *filebuffer = (char*) malloc (sizeof(char)*nbytes);
+  		if (filebuffer == NULL) {
+  			 
+  		}
+
+  		int result = fread (filebuffer,1, nbytes,filep);
+  		if (result != nbytes) {
+  		
+  		}
+		
+		ibwrt(Device, filebuffer, nbytes);
      	fclose(filep);
 	}
 	

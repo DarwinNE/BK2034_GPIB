@@ -61,7 +61,7 @@ Total documentation of a B&K 2034 via GPIB
 Davide Bucci, 2015
 
 This software communicates with a Bruel&Kjaer 2034 double channel FFT
-spectrum analyzer and records or send back to the instrument its current
+spectrum analyzer and records or sends back to the instrument its current
 state, which comprises the measurement settings, the data acquired as well
 as the visualization settings.
 
