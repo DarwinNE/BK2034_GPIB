@@ -9,9 +9,11 @@ The utilities have been developed and tested with MacOSX 10.6.9 and 10.9.5 with 
 |--------------|-------------|
 |octave.c      | Performs a read of the spectrum and calculates the 1/3 of octave representation. |
 |totaldoc.c    | Read or send back a "total documentation" of the 2034 (backup of configuration and measurements). |
+|impedance.c   | Perform an impedance measurement via a resistive bridge. |
+|commBK2034.c  | Several routines for the GPIB control of the 2034. |
 
 
-## octave.c
+## octave
 
 Third-octave analysis with B&K 2034 via GPIB
 
@@ -54,7 +56,7 @@ The following options are available:
 |  -v    | Specify vertical range in dB for the graphs (between 5 and 160).
 |  -c    | Use a calibration file. Measurement results will be normalized to those read from the given file.
 
-## totaldoc.c
+## totaldoc
 
 Total documentation of a B&K 2034 via GPIB
 
@@ -76,4 +78,35 @@ The following options are available:
 |  -s    | Change the secondary address of the BK 2034.
 |  -r    | Record a total documentation of the BK 2034 on a given file (2034 -> file).
 |  -t    | Send back a total documentation to the BK 2034 from a given file  (file -> 2034).
+
+## impedance
+
+Total documentation of a B&K 2034 via GPIB
+
+Davide Bucci, 2015
+
+This software communicates with a Bruel&Kjaer 2034 double channel FFT
+spectrum analyzer and performs an impedance measurement in the 0-25.6kHz
+band of the instrument. The measurement may be done by using the internal
+signal generator of the instrument, as a pseudo-random noise generator.
+The output of the generator should be used to fed the device under test,
+by putting a series resistor of known value R. By default, the program
+considers a value of R of 1000 Ω. Connect the input of channel A to the
+output of the signal generator and use channel B to probe the voltage
+at the terminals of the device. The output impedance of the generator
+(by default 0 Ω) can be taken into account separately.
+
+
+The following options are available:
+
+| Option | Action
+|--------|------------------------------------------------------------|
+|  -h    | Show this help
+|  -b    | Change the board interface index (GPIB0=0,GPIB1=1,etc.)
+|  -p    | Change the primary address of the BK 2034.
+|  -s    | Change the secondary address of the BK 2034.
+|  -a    | Choose the number of averages to be done on each acquisition. The default value is 20.
+|  -o    | Write on a file the results.
+|  -r    | Changes the resistance R to be used in the divider (in Ω)
+|  -g    | Changes the generator impedance (in Ω)
 

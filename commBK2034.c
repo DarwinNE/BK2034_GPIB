@@ -41,7 +41,7 @@ char *readGPIB(char *buffer, size_t maxlen)
 /** Configure the acquisition of the BK 2034 to acquire the 
     wanted spectrum and number of averages.
 */
-void configureAcquisitionAndGraph2034(int navg, t_style s)
+void configureAcquisitionAndGraph2034(int navg, t_style s, bool logY)
 {
     char command[1001];
 
@@ -98,9 +98,17 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
     }
     
     ibwrt(Device, command, strlen(command)); 
- 
-    sprintf(command, "EDIT_DISPLAY_SPECIFICATION YU 1\n");
-    ibwrt(Device, command, strlen(command)); 
+ 	
+ 	if(logY) {
+    	sprintf(command, "EDIT_DISPLAY_SPECIFICATION YU 1\n");
+    	ibwrt(Device, command, strlen(command));
+    	//writeGPIB("EDIT_DISPLAY_SPECIFICATION YL 1\n");
+    } else {
+    	sprintf(command, "EDIT_DISPLAY_SPECIFICATION YU 0\n");
+    	/* Linear axes */
+    	//ibwrt(Device, command, strlen(command));
+		//writeGPIB("EDIT_DISPLAY_SPECIFICATION YL 0\n");
+    }	
     
     switch(s) {
         default:
@@ -168,7 +176,7 @@ float readMaxFrequency2034(void)
 
     float maxfreq;
     sscanf(Buffer, "%f", &maxfreq);
-    printf("Frequency span: %f\n", maxfreq);
+    printf("Frequency span: %5.1f Hz\n", maxfreq);
     return maxfreq;
 }
 
@@ -423,11 +431,15 @@ int getDataPoints2034(
     
     int i;
     
+    float maxfreq=readMaxFrequency2034();
+    float deltaf=maxfreq/((float)npoints-1);
+    
     /* This increases the execution speed of the transfer via GPIB */
     sprintf(command, "CONTROL_PROCESS MAXIMUM_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));
     
     for (i=0; i<npoints; ++i) {
+    	freqs[i]=deltaf*(float)(i);
         sprintf(command, "AF IR,%d\n", i);
         ibwrt(Device, command, strlen(command)); 
         ibrd(Device, Buffer, sizeof(Buffer));   
@@ -438,7 +450,12 @@ int getDataPoints2034(
         Buffer[ibcntl] = '\0'; 
         sscanf(Buffer+1,"%f", &value);
         storage[i]=value;
+        if(i%15==0) {
+        	printf(".");
+        	fflush(stdout);
+        }
     }
+    printf("\n");
     
     sprintf(command, "CONTROL_PROCESS NORMAL_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));

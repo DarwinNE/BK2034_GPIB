@@ -236,7 +236,7 @@ int main(int argc, char**argv)
     init2034(0, primaryAddress, secondaryAddress);
     reset2lev2034();
     identify2034();
-    configureAcquisitionAndGraph2034(wnavg, acquisition_c);
+    configureAcquisitionAndGraph2034(wnavg, acquisition_c, true);
 
     /*float testl[]={5,0,-5,-15,-20,-35,6, 10,-7};
     printBandsOnScreen(9, limits, testl, 50);
