@@ -1,7 +1,7 @@
 /*****************************************************************************
- * IMPEDANCE MEASUREMENT IN THE AUDIO RANGE
+ * SIMPLE RECORDING OF THE ACTUAL DISPLAY
  *
- * Davide Bucci March 22, 2015
+ * Davide Bucci March 28, 2015
  * 
  * GPL v.3, tested on MacOSX 10.6.8 with NI drivers IEEE488
  *****************************************************************************/
@@ -16,15 +16,8 @@
 
 #define HELP_STR \
 "This software communicates with a Bruel&Kjaer 2034 double channel FFT\n"\
-"spectrum analyzer and performs an impedance measurement in the 0-25.6kHz\n"\
-"band of the instrument. The measurement can be done by using the internal\n"\
-"signal generator of the instrument, as a pseudo-random noise generator.\n"\
-"The output of the generator should be used to fed the device under test,\n"\
-"by putting a series resistor of known value R. By default, the program\n"\
-"considers a value of R of 1000 Ω. Connect the input of channel A to the\n"\
-"output of the signal generator and use channel B to probe the voltage\n"\
-"at the terminals of the device. The output impedance of the generator\n"\
-"(by default 0 Ω) can be taken into account.\n"\
+"spectrum analyzer and records what it is shown on the upper display.\n"\
+"No processing is done on the data.\n"\
 "\n"\
 "\n"\
 "The following options are available:\n"\
@@ -37,14 +30,7 @@
 "\n"\
 "   -s     Change the secondary address of the BK 2034.\n"\
 "\n"\
-"   -a     Choose the number of averages to be done on each acquisition.\n"\
-"          The default value is 20.\n"\
-"\n"\
 "   -o     Write on a file the results.\n"\
-"\n"\
-"   -r     Changes the resistance R to be used in the divider (in Ω)\n"\
-"\n"\
-"   -g     Changes the generator impedance (in Ω)\n"\
 "\n\n"
 
 
@@ -64,9 +50,8 @@ int main(int argc, char**argv)
    	int navg=20;
    	char *fileName=NULL;
    	 
-    printf("\nImpedance measurement with a B&K 2034 via GPIB\n\n");
+    printf("\nRecord data from a B&K 2034 via GPIB\n\n");
     printf("Davide Bucci, 2015\n\n");
-    
     
     /* If necessary, process all command line functions */
     if(argc>1) {
@@ -116,37 +101,7 @@ int main(int argc, char**argv)
                 } else {
                     fprintf(stderr, "-o requires the file name.\n");
                 }
-            } else if(strcmp(argv[i], "-r")==0) { /* -r external res. */
-                if(argc>i+1) {
-                    int wsa;
-                    sscanf(argv[++i], "%f", &externalRes);
-                } else {
-                    fprintf(stderr, "-r requires a resistance.\n");
-                }
-            } else if(strcmp(argv[i], "-g")==0) { /* -r internal res. */
-                if(argc>i+1) {
-                    int wsa;
-                    sscanf(argv[++i], "%f", &internalRes);
-                } else {
-                    fprintf(stderr, "-g requires a resistance.\n");
-                }
-            } else if(strcmp(argv[i], "-a")==0) { /* -a number of averages */
-                if(argc>i+1) {
-                    int wnavg_p;
-                    sscanf(argv[++i], "%d", &wnavg_p);
-                    if (wnavg_p<1 || wnavg_p>32767) {
-                        fprintf(stderr, "Invalid number of averages (%d).\n",
-                            wnavg_p);
-                    } else {
-                        navg=wnavg_p;
-                    }
-                } else {
-                    fprintf(stderr, "-a requires the number of averages.\n");
-                }
-            } else {
-            	fprintf(stderr, "Unknown option %4s \n", argv[i]);
-            	return 1;
-            }
+            } 
         }
     }
     
@@ -155,44 +110,17 @@ int main(int argc, char**argv)
         secondaryAddress);
 
     init2034(0, primaryAddress, secondaryAddress);
-    reset2lev2034();
 	
     identify2034();
 	
-	configureAcquisitionAndGraph2034(navg, H1, false);
-	
-    
-	
-	startMeasurement2034();
-	waitUntilFinished2034(navg);
-	
 	int npoints=801;
-	float realpoints[npoints];
-	float imagpoints[npoints];
+	float points[npoints];
 	
 	float freqpoints[npoints];
 
-	float _Complex impedance[npoints];
-	float module;
-	float phase;
+	printf("Reading data\n");
 	
-	float rtot=internalRes+externalRes;
-	
-	printf("Considering a total resistance of %f Ω.\n", rtot);
-	
-	float _Complex h=1.0f;
-	  
-	printf("Reading real part of data\n");
-	
-	/* Real part */
-	writeGPIB("EDIT_DISPLAY_SPECIFICATION FC 0\n");
-	getDataPoints2034(freqpoints, realpoints, npoints);
-
-	printf("Reading imaginary part of data\n");
-	
-	/* Imaginary part */
-	writeGPIB("EDIT_DISPLAY_SPECIFICATION FC 1\n");
-	getDataPoints2034(freqpoints, imagpoints, npoints);
+	getDataPoints2034(freqpoints, points, npoints);
 
 	FILE *fout=NULL;
 	if(fileName!=NULL) {
@@ -201,21 +129,13 @@ int main(int argc, char**argv)
 			fprintf(stderr,"Could not open the output file.\n");
 			return 1;
 		}
-		fprintf(fout, "#freq/Hz module/Ω phase/rad\n");
+		fprintf(fout, "#freq/Hz read\n");
+	} else {
+		fout=stdout;
 	}
 	for(i=0; i<npoints; ++i) {
-		h=realpoints[i]+imagpoints[i]*I;
-		impedance[i] = rtot*h/(1-h);
-		module=cabsf(impedance[i]);
-		phase=cargf(impedance[i]);
-		
-		if(fileName==NULL) {
-			printf("freq=%f, module=%f, phase=%f rad\n",
-				freqpoints[i], module, phase);
-		} else {
-			fprintf(fout, "%f %f %f\n",
-				freqpoints[i], module, phase);
-		}
+		fprintf(fout, "%f %f\n",
+				freqpoints[i], points[i]);
 	}
 
 	closeCommIEEE();

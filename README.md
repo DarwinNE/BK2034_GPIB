@@ -10,7 +10,9 @@ The utilities have been developed and tested with MacOSX 10.6.9 and 10.9.5 with 
 |octave.c      | Performs a read of the spectrum and calculates the 1/3 of octave representation. |
 |totaldoc.c    | Read or send back a "total documentation" of the 2034 (backup of configuration and measurements). |
 |impedance.c   | Perform an impedance measurement via a resistive bridge. |
+|record.c      | Record data on the display of the instrument. |
 |commBK2034.c  | Several routines for the GPIB control of the 2034. |
+
 
 
 ## octave
@@ -81,7 +83,7 @@ The following options are available:
 
 ## impedance
 
-Total documentation of a B&K 2034 via GPIB
+Impedance measurement with a B&K 2034 via GPIB
 
 Davide Bucci, 2015
 
@@ -110,3 +112,23 @@ The following options are available:
 |  -r    | Changes the resistance R to be used in the divider (in Ω)
 |  -g    | Changes the generator impedance (in Ω)
 
+## record
+
+Record data from a B&K 2034 via GPIB
+
+Davide Bucci, 2015
+
+This software communicates with a Bruel&Kjaer 2034 double channel FFT
+spectrum analyzer and records what it is shown on the upper display.
+No processing is done on the data.
+
+
+The following options are available:
+
+| Option | Action
+|--------|------------------------------------------------------------|
+|  -h    | Show this help
+|  -b    | Change the board interface index (GPIB0=0,GPIB1=1,etc.)
+|  -p    | Change the primary address of the BK 2034.
+|  -s    | Change the secondary address of the BK 2034.
+|  -o    | Write on a file the results.
