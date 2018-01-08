@@ -48,14 +48,14 @@ int main(int argc, char**argv)
     int   primaryAddress = 3;  /* Primary address of the device           */
     int   secondaryAddress = 0; /* Secondary address of the device        */
 
-   	int i=0;
-   	
-   	float internalRes = 50.0; 
-   	float externalRes = 1000.0;
-   	
-   	int navg=50;
-   	char *fileName=NULL;
-   	 
+    int i=0;
+    
+    float internalRes = 50.0; 
+    float externalRes = 1000.0;
+    
+    int navg=50;
+    char *fileName=NULL;
+     
     printf("\nTotal documentation of a B&K 2034 via GPIB\n\n");
     printf("Davide Bucci, 2015\n\n");
     
@@ -119,57 +119,57 @@ int main(int argc, char**argv)
     init2034(0, primaryAddress, secondaryAddress);
     reset2lev2034();
     identify2034();
-	
-	configureAcquisitionAndGraph2034(navg, H1);
-	startMeasurement2034();
-	waitUntilFinished2034(navg);
-	
-	int npoints=801;
-	float realpoints[npoints];
-	float imagpoints[npoints];
-	
-	float freqpoints[npoints];
+    
+    configureAcquisitionAndGraph2034(navg, H1);
+    startMeasurement2034();
+    waitUntilFinished2034(navg);
+    
+    int npoints=801;
+    float realpoints[npoints];
+    float imagpoints[npoints];
+    
+    float freqpoints[npoints];
 
-	float _Complex impedance[npoints];
-	float module;
-	float phase;
-	
-	float rtot=internalRes+externalRes;
-	
-	float _Complex h=1.0f;
-	  
-	/* Linear axes */
-	writeGPIB("EDIT_DISPLAY_SPECIFICATION YL 0\n");
-	
-	/* Real part */
-	writeGPIB("EDIT_DISPLAY_SPECIFICATION FC 0\n");
-	getDataPoints2034(freqpoints, realpoints, npoints);
+    float _Complex impedance[npoints];
+    float module;
+    float phase;
+    
+    float rtot=internalRes+externalRes;
+    
+    float _Complex h=1.0f;
+      
+    /* Linear axes */
+    writeGPIB("EDIT_DISPLAY_SPECIFICATION YL 0\n");
+    
+    /* Real part */
+    writeGPIB("EDIT_DISPLAY_SPECIFICATION FC 0\n");
+    getDataPoints2034(freqpoints, realpoints, npoints);
 
-	/* Imaginary part */
-	writeGPIB("EDIT_DISPLAY_SPECIFICATION FC 1\n");
-	getDataPoints2034(freqpoints, imagpoints, npoints);
+    /* Imaginary part */
+    writeGPIB("EDIT_DISPLAY_SPECIFICATION FC 1\n");
+    getDataPoints2034(freqpoints, imagpoints, npoints);
 
-	FILE *fout;
-	if(fileName==NULL) {
-		fout=stdout;
-	} else {
-		fout=fopen(fileName, "w");
-		if(fout==NULL) {
-			fprintf(stderr,"Could not open the output file.\n");
-			return 1;
-		}
-	}
-	for(i=0; i<npoints; ++i) {
-		h=realpoints[i]+imagpoints[i];
-		impedance[i] = rtot*h/(1-h);
-		module=cabsf(impedance[i]);
-		phase=cargf(impedance[i]);
-		
-		fprintf(fout, "freq=%f, module=%f, phase=%f rad\n",
-			freqpoints[i], module, phase);
-	}
+    FILE *fout;
+    if(fileName==NULL) {
+        fout=stdout;
+    } else {
+        fout=fopen(fileName, "w");
+        if(fout==NULL) {
+            fprintf(stderr,"Could not open the output file.\n");
+            return 1;
+        }
+    }
+    for(i=0; i<npoints; ++i) {
+        h=realpoints[i]+imagpoints[i];
+        impedance[i] = rtot*h/(1-h);
+        module=cabsf(impedance[i]);
+        phase=cargf(impedance[i]);
+        
+        fprintf(fout, "freq=%f, module=%f, phase=%f rad\n",
+            freqpoints[i], module, phase);
+    }
 
-	closeCommIEEE();
+    closeCommIEEE();
        
     return 0;
 }

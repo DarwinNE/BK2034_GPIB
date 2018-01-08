@@ -38,7 +38,7 @@ char *readGPIB(char *buffer, size_t maxlen)
 	return buffer;
 }
 
-/** Configure the acquisition of the BK 2034 to acquire the 
+/** Configure the acquisition of the BK 2034 to acquire the
     wanted spectrum and number of averages.
 */
 void configureAcquisitionAndGraph2034(int navg, t_style s)
@@ -47,8 +47,8 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
 
     /* Show upper graph and measurement settings */
     sprintf(command, "DISPLAY_FORMAT UM\n");
-    ibwrt(Device, command, strlen(command)); 
-    
+    ibwrt(Device, command, strlen(command));
+
     /* System settings for MEASUREMENT */
     /* Configure the acquisition channel, at first. */
     switch(s) {
@@ -64,23 +64,23 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
             sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MC 2\n");
             break;
     }
-    ibwrt(Device, command, strlen(command)); 
-    
+    ibwrt(Device, command, strlen(command));
+
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION MM 0\n");
-    ibwrt(Device, command, strlen(command)); 
+    ibwrt(Device, command, strlen(command));
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION ZB 1\n");
-    ibwrt(Device, command, strlen(command));  
+    ibwrt(Device, command, strlen(command));
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AT 1\n");
-    ibwrt(Device, command, strlen(command)); 
+    ibwrt(Device, command, strlen(command));
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AN %d\n",navg);
-    ibwrt(Device, command, strlen(command)); 
+    ibwrt(Device, command, strlen(command));
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AA 0\n");
-    ibwrt(Device, command, strlen(command)); 
+    ibwrt(Device, command, strlen(command));
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION AW 1\n");
     ibwrt(Device, command, strlen(command));
-    
+
     /* System settings for DISPLAY */
-    
+
     switch(s) {
         default:
         case CH_A:
@@ -96,12 +96,12 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
             sprintf(command, "EDIT_DISPLAY_SPECIFICATION FU 19\n");
             break;
     }
-    
-    ibwrt(Device, command, strlen(command)); 
- 
+
+    ibwrt(Device, command, strlen(command));
+
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION YU 1\n");
-    ibwrt(Device, command, strlen(command)); 
-    
+    ibwrt(Device, command, strlen(command));
+
     switch(s) {
         default:
         case CH_A:
@@ -117,24 +117,24 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
         case H2:
             break;
     }
-    
-    
-     
+
+
+
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION ID 2\n");
-    ibwrt(Device, command, strlen(command)); 
+    ibwrt(Device, command, strlen(command));
     sprintf(command, "EDIT_DISPLAY_SPECIFICATION DS 0\n");
-    ibwrt(Device, command, strlen(command)); 
+    ibwrt(Device, command, strlen(command));
 
 }
 
 /** Configure the maximum frequency span to be used for measurements
-    on the 2034. 
+    on the 2034.
 */
 void configureMaxFreq2034(char *maxfreq)
 {
     char command[1001];
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION FS %s\n", maxfreq);
-    ibwrt(Device, command, strlen(command)); 
+    ibwrt(Device, command, strlen(command));
 }
 
 /** Start a measurement campaign on the 2034.
@@ -158,11 +158,11 @@ float readMaxFrequency2034(void)
     char  Buffer[1001];
     char command[1001];
     sprintf(command, "EDIT_MEASUREMENT_SPECIFICATION FREQUENCY_SPAN\n");
-    ibwrt(Device, command, strlen(command)); 
+    ibwrt(Device, command, strlen(command));
     ibrd(Device, Buffer, sizeof(Buffer));
-    
+
     if (ibsta & ERR) {
-        GpibError("ibrd Error");    
+        GpibError("ibrd Error");
     }
     Buffer[ibcntl] = '\0';         /* Null terminate the ASCII string  */
 
@@ -172,7 +172,7 @@ float readMaxFrequency2034(void)
     return maxfreq;
 }
 
-/** Polls the averaging number status until 50 averages have been 
+/** Polls the averaging number status until 50 averages have been
     computed. Shows a sort of progress bar during the measurement.
 */
 void waitUntilFinished2034(int wnavg)
@@ -183,26 +183,26 @@ void waitUntilFinished2034(int wnavg)
     float wstar=50.0f;
     float complete=0.0f;
     int i;
-    
+
     sprintf(command, "PROMPT 'PLEASE START MEASUREMENTS NOW'\n");
     ibwrt(Device, command, strlen(command));
     printf("[                                                  ]\r");
     do {
         waitFor(1);
         sprintf(command, "CURRENT_STATUS A_N_R\n");
-        ibwrt(Device, command, strlen(command)); 
+        ibwrt(Device, command, strlen(command));
         ibrd(Device, Buffer, sizeof(Buffer));
-    
+
         if (ibsta & ERR) {
-            GpibError("ibrd Error");    
+            GpibError("ibrd Error");
         }
         Buffer[ibcntl] = '\0';         /* Null terminate the ASCII string  */
 
         sscanf(Buffer, "%f", &averagingnum);
-    
+
         complete=averagingnum/wnavg;
         printf("\r[");
-        
+
         /* Erase the prompt line on the 2034 */
         if(averagingnum>0) {
         	sprintf(command, "PROMPT\n");
@@ -218,7 +218,7 @@ void waitUntilFinished2034(int wnavg)
 
 /** Wait for a given number of seconds.
 */
-void waitFor (unsigned int secs) 
+void waitFor (unsigned int secs)
 {
     unsigned int retTime = time(0) + secs;     // Get finishing time.
     while (time(0) < retTime);    // Loop until it arrives.
@@ -232,51 +232,51 @@ void drawBandsOn2034(int octn, /* Number of bands */
 {
     char command[1001];
     int i;
-    
+
     sprintf(command, "WRITE_TEXT CLEAR_HOME\n");
     ibwrt(Device, command, strlen(command));
-    
+
     sprintf(command, "WRITE_TEXT 1,5,\"OCTAVE ANALYSIS, DAVIDE BUCCI 2015\"\n");
     ibwrt(Device, command, strlen(command));
-    
-    
+
+
 
     int screenwidth=401;
     float octwidth=(float)screenwidth/(float)octn;
     int baseline=200;
     float mult=50.0f/(vrange/4.0f);
-    
+
     int val;
     int countthirdoct=0;
     float octaveinflimit;
     float octavesuplimit;
     float centraloct;
-    
+
     float max=-200;
     /* Search for the maximum value */
     for(i =0; i<octn; ++i)
         if(calcvalues[i]>max)
             max=calcvalues[i];
-    
+
     sprintf(command, "WRITE_TEXT 2,5,\"V. range: %4.2f dB, TOP: %4.2f dB\"\n",
         vrange, max);
-        
+
     ibwrt(Device, command, strlen(command));
-    
+
     // 401 pts/line, bipolar display, show scales
     sprintf(command, "CONTROL_PROCESS DISPLAY_MODE 1,0,1\n");
     ibwrt(Device, command, strlen(command));
-    
+
     sprintf(command, "PLOT_FOREGROUND 0,0\n");
     ibwrt(Device, command, strlen(command));
-    
+
     for(i =0; i<octn; ++i) {
         val=(int)((calcvalues[i]-max)*mult)+baseline;
-        
-        sprintf(command, "PLOT_CONTINUE_FOREGROUND %d,%d,%d,%d\n", 
+
+        sprintf(command, "PLOT_CONTINUE_FOREGROUND %d,%d,%d,%d\n",
             (int)(octwidth*i),val,(int)(octwidth*(i+1)-1),val);
         ibwrt(Device, command, strlen(command));
-        
+
         octaveinflimit=limits[i];
         octavesuplimit=limits[i+1];
         centraloct=sqrt(octavesuplimit*octaveinflimit);
@@ -291,7 +291,7 @@ void drawBandsOn2034(int octn, /* Number of bands */
             } else {
                 corr+=12;
             }
-            sprintf(command, "PLOT_CONTINUE_FOREGROUND %d,%d,\"%d\"\n", 
+            sprintf(command, "PLOT_CONTINUE_FOREGROUND %d,%d,\"%d\"\n",
                 (int)(octwidth*(i+0.1f)-corr),20,
                 (int)round(centraloct));
         }
@@ -299,7 +299,7 @@ void drawBandsOn2034(int octn, /* Number of bands */
     }
 }
 
-/** Read the data of all displayed points from the 2034. Returns the number 
+/** Read the data of all displayed points from the 2034. Returns the number
     of bands covered or a negative number if something bad happened.
     Data will be put in calcvalues, which should have been allocated before
     calling to this function.
@@ -316,14 +316,14 @@ int getBandsFrom2034(
 {
     char command[1001];
     char  Buffer[1001];
-    
+
     float centraloct=16.0f;
     int ptinoctave=0;
     int octn=0;
     int i;
     float freq;
     FILE *fout=NULL;
-    
+
     float octaveinflimit=limits[octn];
     float octavesuplimit=limits[octn+1];
     float value;
@@ -333,22 +333,22 @@ int getBandsFrom2034(
     /* This increases the execution speed of the transfer via GPIB */
     sprintf(command, "CONTROL_PROCESS MAXIMUM_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));
-    
+
     if(filename!=NULL)
     	fout=fopen(filename, "w");
     	
-    
+
     for (i=0; i<npoints; ++i) {
         freq=deltaf*(float)(i);
         sprintf(command, "AF IR,%d\n", i);
-        ibwrt(Device, command, strlen(command)); 
-        ibrd(Device, Buffer, sizeof(Buffer));   
+        ibwrt(Device, command, strlen(command));
+        ibrd(Device, Buffer, sizeof(Buffer));
         if (ibsta & ERR) {
-            GpibError("ibrd Error");    
+            GpibError("ibrd Error");
         }
-        Buffer[ibcntl] = '\0'; 
+        Buffer[ibcntl] = '\0';
         sscanf(Buffer+1,"%f", &value);
-    
+
     	if(fout!=NULL) {
     		fprintf(fout,"%f %f\n",freq, value);
     	}
@@ -362,19 +362,19 @@ int getBandsFrom2034(
             ++ptinoctave;
         } else if(freq>octavesuplimit) {
             /* We have got to the following interval */
-            
+
             float bandwidth=octavesuplimit-octaveinflimit;
             float realbandwidth=ptinoctave*deltaf;
             float correction=realbandwidth/bandwidth;
-            
+
             if(acq==H1 || acq==H2) {
             	accum/= realbandwidth;
             } else {
             	accum *= correction;
             }
-            
+
             accum=10*log10(accum);
-            printf("Band %6.1f Hz - %6.1f Hz around %6.1f Hz: %5.2f dB/YREF*Hz\n", 
+            printf("Band %6.1f Hz - %6.1f Hz around %6.1f Hz: %5.2f dB/YREF*Hz\n",
                 octaveinflimit, octavesuplimit,centraloct, accum);
             calcvalues[octn]=accum;
             octaveinflimit=limits[++octn];
@@ -386,7 +386,7 @@ int getBandsFrom2034(
                     "small\n");
                 return -1;
             }
-            
+
             /* The accumulator is not set to zero to avoid divide by
                zero errors if no point fall inside the band */
             accum=1.0e-10f;
@@ -400,15 +400,15 @@ int getBandsFrom2034(
     printf("Total power: %f dB/YREF*Hz\n",10*log10(total));
     sprintf(command, "CONTROL_PROCESS NORMAL_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));
-    
+
     return octn;
 }
 
-/** Read the data of all displayed points from the 2034. 
+/** Read the data of all displayed points from the 2034.
 	The array pointed by storage should be allocated to contain the wanted
 	number of points. Same for freqs.
 	Returns the number of points read from the analyzer. If the returned
-	value is different to npoints, this indicate that there has been a 
+	value is different to npoints, this indicate that there has been a
 	problem somewhere.
 */
 int getDataPoints2034(
@@ -418,31 +418,31 @@ int getDataPoints2034(
 {
     char command[1001];
     char  Buffer[1001];
-    
+
     float value;
-    
+
     int i;
-    
+
     /* This increases the execution speed of the transfer via GPIB */
     sprintf(command, "CONTROL_PROCESS MAXIMUM_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));
-    
+
     for (i=0; i<npoints; ++i) {
         sprintf(command, "AF IR,%d\n", i);
-        ibwrt(Device, command, strlen(command)); 
-        ibrd(Device, Buffer, sizeof(Buffer));   
+        ibwrt(Device, command, strlen(command));
+        ibrd(Device, Buffer, sizeof(Buffer));
         if (ibsta & ERR) {
             GpibError("ibrd Error");
             return i;
         }
-        Buffer[ibcntl] = '\0'; 
+        Buffer[ibcntl] = '\0';
         sscanf(Buffer+1,"%f", &value);
         storage[i]=value;
     }
-    
+
     sprintf(command, "CONTROL_PROCESS NORMAL_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));
-    
+
     return npoints;
 }
 
@@ -461,7 +461,7 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
          1,                       /* Assert EOI line at end of write         */
          0);                      /* EOS termination mode                    */
     if (ibsta & ERR) {            /* Check for GPIB Error                    */
-        GpibError("ibdev Error"); 
+        GpibError("ibdev Error");
     }
 
     ibclr(Device);                 /* Clear the device                       */
@@ -475,7 +475,7 @@ void init2034(int boardIndex, int primaryAddress, int secondaryAddress)
 
 /** Read an identification string from the 2034.
     It is supposed to be "BK,+02034,+00000,+00000,+00002", but the
-    exact contents of it are not checked. If there is a 
+    exact contents of it are not checked. If there is a
     transmission error, exit.
 */
 void identify2034(void)
@@ -484,9 +484,9 @@ void identify2034(void)
     char  Buffer[1001];
     // Get the device identification.
     strncpy(command, "IDENTIFY\n", sizeof(command));
-    ibwrt(Device, command, strlen(command));  
+    ibwrt(Device, command, strlen(command));
 
-    ibrd(Device, Buffer, sizeof(Buffer));   
+    ibrd(Device, Buffer, sizeof(Buffer));
     if (ibsta & ERR) {
         GpibError("ibrd Error");
         exit(1);    /* A little brutal but effective */
@@ -514,12 +514,12 @@ void closeCommIEEE(void)
 
    ibonl(Device, 0);              /* Take the device offline                 */
    if (ibsta & ERR) {
-      GpibError("ibonl Error"); 
+      GpibError("ibonl Error");
    }
 
    ibonl(BoardIndex, 0);          /* Take the interface offline              */
    if (ibsta & ERR) {
-      GpibError("ibonl Error"); 
+      GpibError("ibonl Error");
    }
 }
 
