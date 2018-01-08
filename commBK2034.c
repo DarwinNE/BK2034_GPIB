@@ -19,29 +19,29 @@ int BoardIndex = 0;
 
 void setBoardGPIB(int board)
 {
-	BoardIndex = board;
+    BoardIndex = board;
 }
 
 void writeGPIB(char *command)
 {
-	 ibwrt(Device, command, strlen(command));
+     ibwrt(Device, command, strlen(command));
 }
 
 void writenGPIB(char *command, size_t numbytes)
 {
-	 ibwrt(Device, command, numbytes);
+     ibwrt(Device, command, numbytes);
 }
 
 char *readGPIB(char *buffer, size_t maxlen)
 {
-	ibrd(Device, buffer, maxlen);
-	return buffer;
+    ibrd(Device, buffer, maxlen);
+    return buffer;
 }
 
 /** Configure the acquisition of the BK 2034 to acquire the
     wanted spectrum and number of averages.
 */
-void configureAcquisitionAndGraph2034(int navg, t_style s)
+void configureAcquisitionAndGraph2034(int navg, t_style s, bool logY)
 {
     char command[1001];
 
@@ -99,8 +99,16 @@ void configureAcquisitionAndGraph2034(int navg, t_style s)
 
     ibwrt(Device, command, strlen(command));
 
-    sprintf(command, "EDIT_DISPLAY_SPECIFICATION YU 1\n");
-    ibwrt(Device, command, strlen(command));
+    if(logY) {
+        sprintf(command, "EDIT_DISPLAY_SPECIFICATION YU 1\n");
+        ibwrt(Device, command, strlen(command));
+        //writeGPIB("EDIT_DISPLAY_SPECIFICATION YL 1\n");
+    } else {
+        sprintf(command, "EDIT_DISPLAY_SPECIFICATION YU 0\n");
+        /* Linear axes */
+        //ibwrt(Device, command, strlen(command));
+        //writeGPIB("EDIT_DISPLAY_SPECIFICATION YL 0\n");
+    }
 
     switch(s) {
         default:
@@ -168,7 +176,7 @@ float readMaxFrequency2034(void)
 
     float maxfreq;
     sscanf(Buffer, "%f", &maxfreq);
-    printf("Frequency span: %f\n", maxfreq);
+    printf("Frequency span: %5.1f Hz\n", maxfreq);
     return maxfreq;
 }
 
@@ -205,7 +213,7 @@ void waitUntilFinished2034(int wnavg)
 
         /* Erase the prompt line on the 2034 */
         if(averagingnum>0) {
-        	sprintf(command, "PROMPT\n");
+            sprintf(command, "PROMPT\n");
             ibwrt(Device, command, strlen(command));
         }
         for(i=0; i<(int)(complete*wstar);++i) {
@@ -310,9 +318,9 @@ int getBandsFrom2034(
     float maxfreq,                      /* Max frequency span */
     float *calcvalues,                  /* Pt. to the table to be completed */
     int scv,                            /* Size of calcvalues array. */
-    t_style acq,						/* Acquisition style */
-    char *filename)						/* Name of the file where to store raw
-    									   data (NULL: do not store anything)*/
+    t_style acq,                        /* Acquisition style */
+    char *filename)                     /* Name of the file where to store raw
+                                           data (NULL: do not store anything)*/
 {
     char command[1001];
     char  Buffer[1001];
@@ -335,8 +343,8 @@ int getBandsFrom2034(
     ibwrt(Device, command, strlen(command));
 
     if(filename!=NULL)
-    	fout=fopen(filename, "w");
-    	
+        fout=fopen(filename, "w");
+
 
     for (i=0; i<npoints; ++i) {
         freq=deltaf*(float)(i);
@@ -349,9 +357,9 @@ int getBandsFrom2034(
         Buffer[ibcntl] = '\0';
         sscanf(Buffer+1,"%f", &value);
 
-    	if(fout!=NULL) {
-    		fprintf(fout,"%f %f\n",freq, value);
-    	}
+        if(fout!=NULL) {
+            fprintf(fout,"%f %f\n",freq, value);
+        }
     recalc:
         if(freq>=octaveinflimit && freq<octavesuplimit) {
             /* Calculation of the power in each interval. Expects data
@@ -368,9 +376,9 @@ int getBandsFrom2034(
             float correction=realbandwidth/bandwidth;
 
             if(acq==H1 || acq==H2) {
-            	accum/= realbandwidth;
+                accum/= realbandwidth;
             } else {
-            	accum *= correction;
+                accum *= correction;
             }
 
             accum=10*log10(accum);
@@ -395,8 +403,8 @@ int getBandsFrom2034(
 
     }
     if (fout!=NULL)
-    	fclose(fout);
-    	
+        fclose(fout);
+
     printf("Total power: %f dB/YREF*Hz\n",10*log10(total));
     sprintf(command, "CONTROL_PROCESS NORMAL_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));
@@ -405,16 +413,16 @@ int getBandsFrom2034(
 }
 
 /** Read the data of all displayed points from the 2034.
-	The array pointed by storage should be allocated to contain the wanted
-	number of points. Same for freqs.
-	Returns the number of points read from the analyzer. If the returned
-	value is different to npoints, this indicate that there has been a
-	problem somewhere.
+    The array pointed by storage should be allocated to contain the wanted
+    number of points. Same for freqs.
+    Returns the number of points read from the analyzer. If the returned
+    value is different to npoints, this indicate that there has been a
+    problem somewhere.
 */
 int getDataPoints2034(
-	float *freqs,       /* Array where the frequency points are stored */
-    float *storage,		/* Array where read data will be stored */
-    int npoints)		/* Number of points to be read */
+    float *freqs,       /* Array where the frequency points are stored */
+    float *storage,     /* Array where read data will be stored */
+    int npoints)        /* Number of points to be read */
 {
     char command[1001];
     char  Buffer[1001];
@@ -423,11 +431,15 @@ int getDataPoints2034(
 
     int i;
 
+    float maxfreq=readMaxFrequency2034();
+    float deltaf=maxfreq/((float)npoints-1);
+
     /* This increases the execution speed of the transfer via GPIB */
     sprintf(command, "CONTROL_PROCESS MAXIMUM_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));
 
     for (i=0; i<npoints; ++i) {
+        freqs[i]=deltaf*(float)(i);
         sprintf(command, "AF IR,%d\n", i);
         ibwrt(Device, command, strlen(command));
         ibrd(Device, Buffer, sizeof(Buffer));
@@ -438,8 +450,12 @@ int getDataPoints2034(
         Buffer[ibcntl] = '\0';
         sscanf(Buffer+1,"%f", &value);
         storage[i]=value;
+        if(i%15==0) {
+            printf(".");
+            fflush(stdout);
+        }
     }
-
+    printf("\n");
     sprintf(command, "CONTROL_PROCESS NORMAL_INTERFACE_ACTIVITY\n");
     ibwrt(Device, command, strlen(command));
 
@@ -500,8 +516,8 @@ void identify2034(void)
 */
 void reset2lev2034(void)
 {
-	char command[1001];
-	/* Reset the device */
+    char command[1001];
+    /* Reset the device */
     strncpy(command, "SYSTEM_RESET 2\n", sizeof(command));
     ibwrt(Device, command, strlen(command));
 }

@@ -25,7 +25,7 @@ void configureMaxFreq2034(char *maxfreq);
 void drawBandsOn2034(int octn, float *limits, float *calcvalues, float vrange);
 int getBandsFrom2034(float *limits,int npoints,float maxfreq, 
     float *calcvalues, int scv, t_style acq, char *filename);
-void configureAcquisitionAndGraph2034(int navg, t_style s);
+void configureAcquisitionAndGraph2034(int navg, t_style s, bool logY);
 void startMeasurement2034(void);
 float readMaxFrequency2034(void);
 void waitUntilFinished2034(int wnavg);
